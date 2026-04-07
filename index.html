@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>مصوغات حلب</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;font-family:"El Messiri",system-ui,sans-serif;background:#f7f5f0;color:#111}
+    .app{max-width:430px;margin:0 auto;min-height:100vh;background:#f7f5f0;position:relative}
+    .sticky{position:sticky;top:0;z-index:40;border-bottom:1px solid #a97808;background:rgba(255,255,255,.97);backdrop-filter:blur(10px)}
+    .row{display:flex;align-items:center;justify-content:space-between;padding:16px}
+    .icon-btn{width:42px;height:42px;border-radius:999px;border:1px solid #8a5a00;background:#fffdf8;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#222;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+    .brand{text-align:center}
+    .brand h1{margin:0;font-size:30px;line-height:1}
+    .brand p{margin:8px 0 0;font-size:12px;color:#8a6512}
+    .search-wrap{display:none;border-top:1px solid #ead7a7;background:#fffaf0;padding:12px 16px}
+    .search-wrap.active{display:block}
+    .search-input{width:100%;padding:14px 16px;border-radius:18px;border:1px solid #d7b15d;background:#fff;font-family:inherit;font-size:14px;outline:none}
+    .search-results{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+    .search-item{width:100%;background:#fff;border:1px solid #eedfb8;border-radius:12px;padding:10px 12px;text-align:right;font-family:inherit;cursor:pointer}
+    .section{padding:16px 16px 0}
+    .section-title{text-align:center;font-size:28px;font-weight:700}
+    .divider{display:flex;align-items:center;justify-content:center;gap:16px;padding:10px 0 8px}
+    .divider:before,.divider:after{content:"";width:96px;height:4px;border-radius:999px;background:linear-gradient(90deg,#c29b45,#dfc67e,#c29b45);display:block}
+    .divider span{width:28px;height:28px;border-radius:999px;border:4px solid #c29b45;background:#f8f1de;display:block}
+    .h-scroll{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+    .h-scroll::-webkit-scrollbar{display:none}
+    .hero{width:320px;min-width:320px;height:210px;border-radius:26px;overflow:hidden;border:1px solid #a97808;position:relative;background:#f2ead8;scroll-snap-align:start}
+    .hero img{width:100%;height:100%;object-fit:cover}
+    .hero .overlay{position:absolute;inset:0;background:linear-gradient(to top, rgba(0,0,0,.45), rgba(0,0,0,.1), transparent)}
+    .hero .text{position:absolute;right:16px;bottom:16px;color:#fff;text-align:right}
+    .hero .text h3{margin:0;font-size:24px}
+    .hero .text p{margin:4px 0 0;font-size:12px;opacity:.94}
+    .cat-card{width:136px;min-width:136px;overflow:hidden;border:1px solid #a97808;border-radius:22px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.04);scroll-snap-align:start;cursor:pointer}
+    .cat-card .img{height:122px;background:#f3ead7}
+    .cat-card img{width:100%;height:100%;object-fit:cover}
+    .cat-card .body{padding:12px;text-align:center;font-size:16px;font-weight:600;color:#111}
+    .product-card{margin-bottom:18px;box-shadow:0 10px 25px rgba(0,0,0,0.06);width:120px;min-width:120px;overflow:hidden;border:1px solid #a97808;border-radius:18px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.04);scroll-snap-align:start;cursor:pointer}
+    .product-card .img{height:120px;background:#f3ead7}
+    .product-card img{width:100%;height:100%;object-fit:cover}
+    .product-card .body{padding:8px 8px 10px;background:#fff}
+    .product-card .title{font-size:14px;font-weight:800;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .product-card .weight{margin-top:4px;font-size:12px;color:#4a3200;font-weight:700}
+    .detail-box{overflow:hidden;border:1px solid #a97808;border-radius:28px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+    .detail-gallery{padding:12px;border-bottom:1px solid #ead7a7}
+    .detail-main-img{width:100%;height:330px;border-radius:22px;overflow:hidden;background:#f2ead8}
+    .detail-main-img img{width:100%;height:100%;object-fit:cover}
+    .detail-thumbs{display:flex;gap:10px;overflow-x:auto;padding-top:12px;-webkit-overflow-scrolling:touch}
+    .detail-thumbs::-webkit-scrollbar{display:none}
+    .detail-thumb{width:82px;min-width:82px;height:82px;border-radius:14px;overflow:hidden;background:#f2ead8;border:2px solid transparent;cursor:pointer}
+    .detail-thumb.active{border-color:#b78914}
+    .detail-thumb img{width:100%;height:100%;object-fit:cover}
+    .detail-body{padding:26px 18px 18px}
+    .detail-name{font-size:34px;font-weight:800;color:#111;line-height:1.2}
+    .detail-weight-line{margin-top:10px;font-size:20px;color:#6b4a00;font-weight:700}
+    .chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+    .chip{background:#ead59b;color:#6b4a00;border-radius:999px;padding:10px 18px;font-size:16px}
+    .detail-desc{margin:18px 0 0;line-height:2.1;color:#555;font-size:15px}
+    
+    .drawer-backdrop{
+      position:fixed;
+      inset:0;
+      background:rgba(17,17,17,.18);
+      display:none;
+      z-index:50;
+      backdrop-filter:blur(4px);
+    }
+    .drawer-backdrop.active{display:block}
+    .drawer{
+      position:absolute;
+      left:0;
+      top:0;
+      height:100%;
+      width:78%;
+      max-width:300px;
+      background:linear-gradient(180deg,#fffdfa 0%,#f7f0df 100%);
+      padding:18px 16px 24px;
+      box-shadow:16px 0 38px rgba(0,0,0,.14);
+      overflow:auto;
+      border-radius:0 28px 28px 0;
+      border-right:1px solid rgba(169,120,8,.14);
+    }
+    .drawer-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:18px;
+      padding-bottom:14px;
+      border-bottom:1px solid rgba(169,120,8,.14);
+    }
+    .drawer-label{
+      font-size:24px;
+      font-weight:800;
+      color:#111;
+    }
+    .drawer-close{
+      width:40px;
+      height:40px;
+      border-radius:999px;
+      border:1px solid #b78b22;
+      background:#fffdf8;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:0 4px 12px rgba(0,0,0,.06);
+      cursor:pointer;
+    }
+    .menu-item{
+      background:linear-gradient(180deg,#f9f3e5 0%,#efe4c7 100%);
+      border:1px solid rgba(183,139,34,.12);
+      border-radius:20px;
+      padding:15px 16px;
+      margin-bottom:12px;
+      box-shadow:0 8px 18px rgba(122,82,0,.05);
+      font-size:17px;
+      font-weight:700;
+      color:#171717;
+      cursor:pointer;
+    }
+    .menu-item-link{
+      display:block;
+      color:#171717;
+      text-decoration:none;
+    }
+    .menu-item.toggle{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      user-select:none;
+    }
+    .menu-item.toggle .toggle-label{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .menu-item.toggle .arrow{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:20px;
+      height:20px;
+      color:#9b771f;
+      font-size:18px;
+      font-weight:700;
+      line-height:1;
+      transition:transform .24s ease;
+      flex-shrink:0;
+      background:transparent;
+      border:none;
+      box-shadow:none;
+    }
+    .menu-item.toggle .arrow.open{
+      transform:rotate(180deg);
+    }
+    .subcats{
+      display:none;
+      margin-top:12px;
+      flex-direction:column;
+      gap:9px;
+    }
+    .subcats.open{
+      display:flex;
+    }
+    .subcats button{
+      background:#fff;
+      border:1px solid rgba(183,139,34,.12);
+      border-radius:14px;
+      padding:11px 13px;
+      font-size:15px;
+      text-align:right;
+      font-family:inherit;
+      cursor:pointer;
+      color:#1c1c1c;
+      box-shadow:0 4px 12px rgba(0,0,0,.04);
+    }
+    
+    .wa-float{position:fixed;right:16px;bottom:16px;z-index:35;width:56px;height:56px;border-radius:999px;background:#25D366;color:#fff;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 10px 24px rgba(37,211,102,.35);text-decoration:none}
+    .contact-box{border:1px solid #c9b68c;background:#f6efde;border-radius:28px;padding:20px;text-align:center}
+    .contact-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+    .contact-btn{display:flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:20px;padding:16px 14px;font-family:inherit;font-size:16px;font-weight:700;color:#fff;text-decoration:none;cursor:pointer}
+    .contact-btn.wa{background:#25D366}
+    .contact-btn.fb{background:#1877F2}
+    .page{
+      display:none;
+      opacity:0;
+      transform:translateX(22px);
+    }
+    .page.active{
+      display:block;
+      animation:pageIn .38s ease-out both;
+    }
+    @keyframes pageIn{
+      from{opacity:0;transform:translateX(22px)}
+      to{opacity:1;transform:translateX(0)}
+    }
+    .grid-products{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:46px;padding-top:30px}
+.grid-products .product-card{margin-bottom:18px;box-shadow:0 10px 25px rgba(0,0,0,0.06);
+      width:100%;
+      min-width:0;
+      border-radius:22px;
+    }
+    .grid-products .product-card .img{
+      height:170px;
+    }
+    .grid-products .product-card .body{
+      padding:10px 10px 12px;
+    }
+    .grid-products .product-card .title{
+      font-size:15px;
+      white-space:normal;
+      overflow:visible;
+      text-overflow:unset;
+    }
+    .grid-products .product-card .weight{
+      font-size:13px;
+    }
+    .back-row{display:flex;justify-content:flex-start;padding:0 16px 8px}
+    .back-btn{display:inline-flex;align-items:center;gap:8px;border:none;background:#fff;border:1px solid #c9b68c;border-radius:16px;padding:10px 14px;font-family:inherit;cursor:pointer}
+  
+    .sold-badge{
+      position:absolute;
+      top:10px;
+      left:10px;
+      background:#8f6a10;
+      color:#fff;
+      border-radius:999px;
+      padding:6px 12px;
+      font-size:12px;
+      font-weight:700;
+      z-index:2;
+      box-shadow:0 4px 12px rgba(0,0,0,.12);
+    }
+    .product-card.is-sold .img,
+    .detail-main-img.is-sold{
+      opacity:.68;
+    }
+    .unavailable-note{
+      margin-top:12px;
+      color:#8f6a10;
+      font-size:16px;
+      font-weight:700;
+    }
+
+  
+    .img-fallback{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      width:100%;
+      height:100%;
+      background:linear-gradient(180deg,#f3ead7,#ead9b4);
+      color:#8f6a10;
+      font-size:13px;
+      font-weight:700;
+      text-align:center;
+      padding:10px;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="sticky">
+      <div class="row">
+        <button class="icon-btn" id="backBtn" style="display:none;" aria-label="رجوع">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><line x1="15" y1="18" x2="9" y2="12"></line><line x1="9" y1="12" x2="15" y2="6"></line></svg>
+        </button>
+        <button class="icon-btn" id="searchToggle" aria-label="بحث">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </button>
+        <div class="brand">
+          <h1>مصوغات حلب</h1>
+          <p>Luxury Jewellery Showcase</p>
+        </div>
+        <button class="icon-btn" id="menuToggle" aria-label="القائمة">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="search-wrap" id="searchWrap">
+        <input id="searchInput" class="search-input" placeholder="ابحث عن منتج أو وصف..." />
+        <div id="searchResults" class="search-results"></div>
+      </div>
+    </header>
+
+    <div class="drawer-backdrop" id="drawerBackdrop">
+      <div class="drawer">
+        <div class="drawer-head">
+          <div class="drawer-label">القائمة</div>
+          <button class="drawer-close" id="closeMenu" aria-label="إغلاق">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <div class="menu-item" data-nav="home">الرئيسية</div>
+        <div class="menu-item toggle" id="catToggle">
+          <div class="toggle-label">الأقسام</div>
+          <span class="arrow" id="catArrow">˅</span>
+        </div>
+        <div class="subcats" id="drawerCats"></div>
+        <div class="menu-item" data-nav="latest">أحدث الموديلات</div>
+        <div class="menu-item" data-nav="contact">تواصل معنا</div>
+      </div>
+    </div>
+
+    <main style="padding-bottom:90px">
+      <section id="page-home" class="page active">
+        <section class="section">
+          <div class="h-scroll" id="heroList"></div>
+        </section>
+<div style='height:60px'></div>
+
+        <section id="home-categories" class="section">
+          <div class="divider"><span></span></div>
+          <div class="section-title">الأقسام</div>
+          <div class="h-scroll" id="categoriesList"></div>
+        </section>
+<div style='height:60px'></div>
+
+        <section id="home-latest" class="section">
+          <div class="divider"><span></span></div>
+          <div class="section-title">أحدث الموديلات</div>
+          <div class="h-scroll" id="latestList"></div>
+        </section>
+<div style='height:60px'></div>
+
+        <section class="section">
+          <div class="section-title">تواصل معنا</div>
+          <div class="divider"><span></span></div>
+          <div class="contact-box">
+            <div style="font-size:18px;font-weight:700">للتواصل المباشر</div>
+            <div class="contact-actions">
+              <a class="contact-btn wa" href="https://wa.me/" target="_blank" rel="noreferrer">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20.52 3.48A11.82 11.82 0 0 0 12.07 0C5.56 0 .27 5.28.27 11.79c0 2.08.54 4.11 1.56 5.9L0 24l6.49-1.7a11.74 11.74 0 0 0 5.58 1.42h.01c6.5 0 11.79-5.29 11.79-11.8 0-3.15-1.23-6.11-3.35-8.44Z"></path></svg>
+                واتساب
+              </a>
+              <a class="contact-btn fb" href="https://facebook.com/" target="_blank" rel="noreferrer">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.23.19 2.23.19v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 22 12"></path></svg>
+                فيسبوك
+              </a>
+            </div>
+          </div>
+        </section>
+<div style='height:60px'></div>
+      </section>
+<div style='height:60px'></div>
+
+      <section id="page-category" class="page">
+        
+        <section class="section" style="padding-top:0">
+          <div id="categoryTitle" class="section-title">القسم</div>
+          <div class="divider"><span></span></div>
+          <div class="grid-products" id="categoryProducts"></div>
+        </section>
+<div style='height:60px'></div>
+      </section>
+<div style='height:60px'></div>
+
+      <section id="page-product" class="page">
+        
+        <section class="section" style="padding-top:0">
+          <div class="detail-box">
+            <div class="detail-gallery" id="detailGallery"></div>
+            <div class="detail-body">
+              <div id="selectedTitle" class="detail-name">خاتم ملكي</div>
+              <div id="detailWeightLine" class="detail-weight-line">الوزن: 2.35g</div>
+              <div class="chips">
+                <span class="chip" id="detailCategory">القسم: خواتم</span>
+              </div>
+              <p class="detail-desc" id="detailDesc"></p>
+            </div>
+          </div>
+        </section>
+<div style='height:60px'></div>
+
+        <section class="section">
+          <div class="divider"><span></span></div>
+          <div class="section-title">اقتراحات لك</div>
+          <div class="h-scroll" id="suggestionsList"></div>
+        </section>
+<div style='height:60px'></div>
+      </section>
+<div style='height:60px'></div>
+
+      
+      <section id="page-latest" class="page">
+        
+        <section class="section" style="padding-top:0">
+          <div class="divider"><span></span></div>
+          <div class="section-title">أحدث الموديلات</div>
+          <div class="grid-products" id="latestProductsPage"></div>
+        </section>
+<div style='height:60px'></div>
+      </section>
+<div style='height:60px'></div>
+
+      <section id="page-contact" class="page">
+        <section class="section">
+          <div class="section-title">تواصل معنا</div>
+          <div class="divider"><span></span></div>
+          <div class="contact-box">
+            <div style="font-size:19px;font-weight:700">اختر طريقة التواصل المناسبة</div>
+            <div class="contact-actions">
+              <a class="contact-btn wa" href="https://wa.me/" target="_blank" rel="noreferrer">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20.52 3.48A11.82 11.82 0 0 0 12.07 0C5.56 0 .27 5.28.27 11.79c0 2.08.54 4.11 1.56 5.9L0 24l6.49-1.7a11.74 11.74 0 0 0 5.58 1.42h.01c6.5 0 11.79-5.29 11.79-11.8 0-3.15-1.23-6.11-3.35-8.44Z"></path></svg>
+                تواصل واتساب
+              </a>
+              <a class="contact-btn fb" href="https://facebook.com/" target="_blank" rel="noreferrer">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.23.19 2.23.19v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 22 12"></path></svg>
+                صفحة الفيسبوك
+              </a>
+            </div>
+          </div>
+        </section>
+<div style='height:60px'></div>
+      </section>
+<div style='height:60px'></div>
+    </main>
+
+    <a href="https://wa.me/" target="_blank" rel="noreferrer" class="wa-float" aria-label="واتساب">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M20.52 3.48A11.82 11.82 0 0 0 12.07 0C5.56 0 .27 5.28.27 11.79c0 2.08.54 4.11 1.56 5.9L0 24l6.49-1.7a11.74 11.74 0 0 0 5.58 1.42h.01c6.5 0 11.79-5.29 11.79-11.8 0-3.15-1.23-6.11-3.35-8.44Z"></path></svg>
+    </a>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script>
+    const categories = [
+      { id: "rings", name: "خواتم", image: "https://images.unsplash.com/photo-1603974372039-adc49044b6bd?q=80&w=1200&auto=format&fit=crop" },
+      { id: "wedding-rings", name: "محابس", image: "https://images.unsplash.com/photo-1617038220319-276d3cfab638?q=80&w=1200&auto=format&fit=crop" },
+      { id: "bracelets", name: "أساور", image: "https://images.unsplash.com/photo-1611085583191-a3b181a88401?q=80&w=1200&auto=format&fit=crop" },
+      { id: "sets", name: "أطقم", image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?q=80&w=1200&auto=format&fit=crop" },
+      { id: "cuffs", name: "كفوف", image: "https://images.unsplash.com/photo-1573408301185-9146fe634ad0?q=80&w=1200&auto=format&fit=crop" },
+      { id: "earrings", name: "حلاق", image: "https://images.unsplash.com/photo-1588444837495-c6cfeb53f32d?q=80&w=1200&auto=format&fit=crop" }
+    ];
+
+    let products = [
+      { id: 1, name: "خاتم ملكي", weight: "2.35g", category: "خواتم", description: "تصميم أنيق بطابع فاخر، مناسب للعرض ضمن أحدث الموديلات، مع إمكانية إضافة أكثر من صورة ووصف كامل لكل قطعة من لوحة التحكم.", images: ["https://images.unsplash.com/photo-1603974372039-adc49044b6bd?q=80&w=1200&auto=format&fit=crop","https://images.unsplash.com/photo-1611652022419-a9419f74343d?q=80&w=1200&auto=format&fit=crop","https://images.unsplash.com/photo-1512163143273-bde0e3cc7407?q=80&w=1200&auto=format&fit=crop"], latest: true },
+      { id: 2, name: "محبس ناعم", weight: "3.10g", category: "محابس", description: "موديل هادئ وفخم بلمسة كلاسيكية مناسبة للعرض المميز.", images: ["https://images.unsplash.com/photo-1617038220319-276d3cfab638?q=80&w=1200&auto=format&fit=crop","https://images.unsplash.com/photo-1603561596112-db7f31dba626?q=80&w=1200&auto=format&fit=crop"], latest: true },
+      { id: 3, name: "سوار كلاسيك", weight: "5.20g", category: "أساور", description: "قطعة ناعمة بخطوط بسيطة تعطي طابع راقٍ ومريح بالنظر.", images: ["https://images.unsplash.com/photo-1611085583191-a3b181a88401?q=80&w=1200&auto=format&fit=crop","https://images.unsplash.com/photo-1573408301185-9146fe634ad0?q=80&w=1200&auto=format&fit=crop"], latest: true },
+      { id: 4, name: "طقم ناعم", weight: "9.10g", category: "أطقم", description: "طقم متناسق مناسب للعرض في الواجهة الرئيسية أو قسم الاقتراحات.", images: ["https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?q=80&w=1200&auto=format&fit=crop","https://images.unsplash.com/photo-1573408301185-9146fe634ad0?q=80&w=1200&auto=format&fit=crop"], latest: false },
+      { id: 5, name: "كف أنيق", weight: "6.40g", category: "كفوف", description: "موديل أنيق للعرض ضمن التشكيلات الحديثة والتصاميم الفاخرة.", images: ["https://images.unsplash.com/photo-1573408301185-9146fe634ad0?q=80&w=1200&auto=format&fit=crop"], latest: false },
+      { id: 6, name: "حلاق مرصع", weight: "2.80g", category: "حلاق", description: "حلاق مميز بتفاصيل واضحة يناسب قسم الاقتراحات العامة.", images: ["https://images.unsplash.com/photo-1588444837495-c6cfeb53f32d?q=80&w=1200&auto=format&fit=crop"], latest: true }
+    ];
+
+    const heroSlides = [
+      { id: 1, title: "مصوغات حلب", subtitle: "تصاميم راقية ولمسات ذهبية فاخرة", image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?q=80&w=1200&auto=format&fit=crop" },
+      { id: 2, title: "أحدث التشكيلات", subtitle: "واجهة مرتبة وموديلات جذابة للعرض", image: "https://images.unsplash.com/photo-1573408301185-9146fe634ad0?q=80&w=1200&auto=format&fit=crop" },
+      { id: 3, title: "تفاصيل تليق بالذهب", subtitle: "صور متعددة ووصف واضح لكل موديل", image: "https://images.unsplash.com/photo-1617038220319-276d3cfab638?q=80&w=1200&auto=format&fit=crop" }
+    ];
+
+
+    let db = null;
+
+    function normalizeProduct(doc){
+      const data = doc.data() || {};
+      return {
+        id: doc.id,
+        name: data.name || "موديل جديد",
+        weight: data.weight || "-",
+        category: data.category || "خواتم",
+        description: data.description || "قطعة مميزة معروضة ضمن تشكيلات مصوغات حلب.",
+        images: Array.isArray(data.images) && data.images.length
+          ? data.images
+          : [safeImage(data.image, data.name || "مصوغات حلب")],
+        latest: typeof data.latest === "boolean" ? data.latest : true,
+        available: typeof data.available === "boolean" ? data.available : true
+      };
+    }
+
+    function initFirebaseSafely(){
+      try{
+        if (typeof firebase === "undefined") return false;
+        const firebaseConfig = {
+          apiKey: "AIzaSyBM7gyVx5fF_5s00Cd_jqFEZY6HGIyS7Tc",
+          authDomain: "masoughat-halab.firebaseapp.com",
+          projectId: "masoughat-halab",
+          storageBucket: "masoughat-halab.firebasestorage.app",
+          messagingSenderId: "914437218473",
+          appId: "1:914437218473:web:f54b8eb02feb709eba89b8"
+        };
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
+        db = firebase.firestore();
+        return true;
+      } catch (error){
+        console.log("Firebase init skipped:", error);
+        return false;
+      }
+    }
+
+    async function loadProductsFromFirestore(){
+      if (!db) return;
+      try{
+        const snapshot = await db.collection("products").get();
+        const cloudProducts = snapshot.docs.map(normalizeProduct);
+        if (cloudProducts.length){
+          const localProducts = products.filter(local =>
+            !cloudProducts.some(cloud => cloud.name === local.name)
+          );
+          products = [...cloudProducts, ...localProducts];
+
+          selectedProduct = products[0];
+          selectedCategory = categories.find(c => c.name === selectedProduct.category) || categories[0];
+
+          latestList.innerHTML = "";
+          latestProductsPage.innerHTML = "";
+          categoryProducts.innerHTML = "";
+          suggestionsList.innerHTML = "";
+
+          products.filter(p => p.latest).forEach((p) => latestList.appendChild(productCard(p)));
+          renderSelected();
+          renderCategory();
+          renderLatestPage();
+        }
+      } catch (error){
+        console.log("Firestore load failed:", error);
+      }
+    }
+
+
+    function reliablePlaceholder(name = "مصوغات حلب"){
+      return `https://placehold.co/600x600/f3ead7/8f6a10?text=${encodeURIComponent(name)}`;
+    }
+
+    function safeImage(url, name = "مصوغات حلب"){
+      if (!url || typeof url !== "string") return reliablePlaceholder(name);
+      if (url.includes("via.placeholder.com")) return reliablePlaceholder(name);
+      return url;
+    }
+
+    function imageHTML(url, alt, className = ""){
+      const safeUrl = safeImage(url, alt);
+      return `<img src="${safeUrl}" alt="${alt}" class="${className}" loading="lazy" onerror="this.outerHTML='<div class=&quot;img-fallback&quot;>${alt}</div>'">`;
+    }
+
+    let selectedProduct = products[0];
+    let selectedCategory = categories[0];
+    let selectedDetailImage = 0;
+
+    const pages = {
+      home: document.getElementById("page-home"),
+      category: document.getElementById("page-category"),
+      product: document.getElementById("page-product"),
+      latest: document.getElementById("page-latest"),
+      contact: document.getElementById("page-contact"),
+    };
+
+    const pageHistory = ["home"];
+
+    function updateHeaderButtons(currentPage){
+      const backBtn = document.getElementById("backBtn");
+      const searchBtn = document.getElementById("searchToggle");
+      if(currentPage === "home"){
+        backBtn.style.display = "none";
+        searchBtn.style.display = "flex";
+      } else {
+        backBtn.style.display = "flex";
+        searchBtn.style.display = "none";
+      }
+    }
+
+    function showPage(name, pushToHistory = true){
+      const currentActive = Object.keys(pages).find((key) => pages[key].classList.contains("active")) || "home";
+      if(pushToHistory && currentActive !== name){
+        pageHistory.push(name);
+      }
+      updateHeaderButtons(name);
+      Object.values(pages).forEach((page) => page.classList.remove("active"));
+      window.scrollTo({ top: 0, behavior: "auto" });
+      pages[name].classList.add("active");
+    }
+
+    function goBack(){
+      if(pageHistory.length > 1){
+        pageHistory.pop();
+        const prev = pageHistory[pageHistory.length - 1];
+        showPage(prev, false);
+      } else {
+        showPage("home", false);
+      }
+    }
+
+    function animateTo(name, options = {}){
+      const { closeMenuFirst = false } = options;
+      if (closeMenuFirst) {
+        closeDrawer();
+        setTimeout(() => showPage(name), 180);
+      } else {
+        showPage(name);
+      }
+    }
+
+    const heroList = document.getElementById("heroList");
+    const categoriesList = document.getElementById("categoriesList");
+    const latestList = document.getElementById("latestList");
+    const suggestionsList = document.getElementById("suggestionsList");
+    const detailGallery = document.getElementById("detailGallery");
+    const detailCategory = document.getElementById("detailCategory");
+    const detailWeightLine = document.getElementById("detailWeightLine");
+    const detailDesc = document.getElementById("detailDesc");
+    const selectedTitle = document.getElementById("selectedTitle");
+    const drawerCats = document.getElementById("drawerCats");
+    const searchResults = document.getElementById("searchResults");
+    const categoryTitle = document.getElementById("categoryTitle");
+    const categoryProducts = document.getElementById("categoryProducts");
+    const latestProductsPage = document.getElementById("latestProductsPage");
+
+    function productCard(product){
+      const btn = document.createElement("button");
+      btn.className = "product-card";
+      btn.classList.toggle("is-sold", product.available === false);
+      btn.innerHTML = `
+        <div class="img" style="position:relative;">
+          ${product.available === false ? '<span class="sold-badge">نفد</span>' : ''}
+          ${imageHTML(product.images[0], product.name)}
+        </div>
+        <div class="body">
+          <div class="title">${product.name}</div>
+          <div class="weight">الوزن: ${product.weight}</div>
+        </div>
+      `;
+      btn.addEventListener("click", () => {
+        selectedProduct = product;
+        selectedDetailImage = 0;
+        renderSelected();
+        window.scrollTo({ top: 0, behavior: "auto" });
+        animateTo("product");
+      });
+      return btn;
+    }
+
+    function categoryCard(category){
+      const item = document.createElement("button");
+      item.className = "cat-card";
+      item.innerHTML = `
+        <div class="img">${imageHTML(category.image, category.name)}</div>
+        <div class="body">${category.name}</div>
+      `;
+      item.addEventListener("click", () => {
+        selectedCategory = category;
+        renderCategory();
+        animateTo("category");
+      });
+      return item;
+    }
+
+    function renderSelected(){
+      selectedTitle.textContent = selectedProduct.name;
+      detailCategory.textContent = `القسم: ${selectedProduct.category}`;
+      detailWeightLine.textContent = selectedProduct.weight && selectedProduct.weight !== "-" ? `الوزن: ${selectedProduct.weight}` : "الوزن: غير محدد";
+      detailDesc.textContent = selectedProduct.description;
+      detailGallery.innerHTML = "";
+
+      const main = document.createElement("div");
+      main.className = "detail-main-img" + (selectedProduct.available === false ? " is-sold" : "");
+      main.style.position = "relative";
+      main.innerHTML = `
+        ${selectedProduct.available === false ? '<span class="sold-badge">نفد</span>' : ''}
+        ${imageHTML(selectedProduct.images[selectedDetailImage] || selectedProduct.images[0], selectedProduct.name)}
+      `;
+
+      const thumbs = document.createElement("div");
+      thumbs.className = "detail-thumbs";
+
+      selectedProduct.images.forEach((img, index) => {
+        const wrap = document.createElement("button");
+        wrap.className = "detail-thumb" + (index === selectedDetailImage ? " active" : "");
+        wrap.innerHTML = `${imageHTML(img, selectedProduct.name)}`;
+        wrap.addEventListener("click", () => {
+          selectedDetailImage = index;
+          renderSelected();
+        });
+        thumbs.appendChild(wrap);
+      });
+
+      detailGallery.appendChild(main);
+      detailGallery.appendChild(thumbs);
+
+      const oldNote = document.getElementById("unavailableNote");
+      if (oldNote) oldNote.remove();
+      if (selectedProduct.available === false){
+        const note = document.createElement("div");
+        note.id = "unavailableNote";
+        note.className = "unavailable-note";
+        note.textContent = "غير متوفر حاليًا";
+        detailDesc.insertAdjacentElement("afterend", note);
+      }
+
+      suggestionsList.innerHTML = "";
+      const suggestionPool = products.filter(p => p.id !== selectedProduct.id);
+      suggestionPool.slice(0,4).forEach((p) => {
+        suggestionsList.appendChild(productCard(p));
+      });
+    }
+
+    function renderCategory(){
+      categoryTitle.textContent = selectedCategory.name;
+      categoryProducts.innerHTML = "";
+      products.filter(p => p.category === selectedCategory.name).forEach((p) => {
+        categoryProducts.appendChild(productCard(p));
+      });
+    }
+
+    function renderLatestPage(){
+      latestProductsPage.innerHTML = "";
+      products.filter(p => p.latest).forEach((p) => {
+        latestProductsPage.appendChild(productCard(p));
+      });
+    }
+
+    heroSlides.forEach((slide) => {
+      const item = document.createElement("div");
+      item.className = "hero";
+      item.innerHTML = `
+        ${imageHTML(slide.image, slide.title)}
+        <div class="overlay"></div>
+        <div class="text">
+          <h3>${slide.title}</h3>
+          <p>${slide.subtitle}</p>
+        </div>
+      `;
+      heroList.appendChild(item);
+    });
+
+    categories.forEach((category) => {
+      categoriesList.appendChild(categoryCard(category));
+      const cat = document.createElement("button");
+      cat.textContent = category.name;
+      cat.addEventListener("click", () => {
+        selectedCategory = category;
+        renderCategory();
+        closeDrawer();
+        animateTo("category");
+      });
+      drawerCats.appendChild(cat);
+    });
+
+    products.filter(p => p.latest).forEach((p) => latestList.appendChild(productCard(p)));
+    setupCategoryToggle();
+    renderSelected();
+    renderCategory();
+    renderLatestPage();
+    updateHeaderButtons('home');
+    initFirebaseSafely();
+    loadProductsFromFirestore();
+
+    const searchWrap = document.getElementById("searchWrap");
+    const searchToggle = document.getElementById("searchToggle");
+    const menuToggle = document.getElementById("menuToggle");
+    const drawerBackdrop = document.getElementById("drawerBackdrop");
+    const closeMenu = document.getElementById("closeMenu");
+    const searchInput = document.getElementById("searchInput");
+
+
+    function setupCategoryToggle(){
+      const toggle = document.getElementById("catToggle");
+      const subcats = document.getElementById("drawerCats");
+      const arrow = document.getElementById("catArrow");
+      if(!toggle || !subcats || !arrow) return;
+
+      toggle.addEventListener("click", function(e){
+        e.stopPropagation();
+        const isOpen = subcats.classList.toggle("open");
+        arrow.classList.toggle("open", isOpen);
+      });
+    }
+
+    function closeDrawer(){
+      drawerBackdrop.classList.remove("active");
+    }
+
+    searchToggle.addEventListener("click", () => {
+      searchWrap.classList.toggle("active");
+    });
+
+    menuToggle.addEventListener("click", () => drawerBackdrop.classList.add("active"));
+    closeMenu.addEventListener("click", closeDrawer);
+    drawerBackdrop.addEventListener("click", (e) => {
+      if (e.target === drawerBackdrop) closeDrawer();
+    });
+
+    searchInput.addEventListener("input", (e) => {
+      const value = e.target.value.trim().toLowerCase();
+      searchResults.innerHTML = "";
+      if (!value) return;
+
+      const results = products.filter(p =>
+        p.name.toLowerCase().includes(value) || p.description.toLowerCase().includes(value)
+      ).slice(0,4);
+
+      results.forEach((item) => {
+        const btn = document.createElement("button");
+        btn.className = "search-item";
+        btn.textContent = item.name;
+        btn.addEventListener("click", () => {
+          selectedProduct = item;
+          selectedDetailImage = 0;
+          renderSelected();
+          searchInput.value = "";
+          searchResults.innerHTML = "";
+          searchWrap.classList.remove("active");
+          animateTo("product");
+        });
+        searchResults.appendChild(btn);
+      });
+    });
+
+    document.querySelector('[data-nav="home"]').addEventListener("click", () => {
+      closeDrawer();
+      animateTo("home", { closeMenuFirst: true });
+    });
+
+    document.querySelector('[data-nav="latest"]').addEventListener("click", () => {
+      closeDrawer();
+      renderLatestPage();
+      animateTo("latest", { closeMenuFirst: true });
+    });
+
+    document.querySelector('[data-nav="contact"]').addEventListener("click", () => {
+      closeDrawer();
+      animateTo("contact", { closeMenuFirst: true });
+    });
+    document.getElementById("backBtn").addEventListener("click", goBack);
+  </script>
+</body>
+</html>
