@@ -197,6 +197,30 @@
     .empty{
       text-align:center;padding:34px 16px;color:var(--muted)
     }
+    .category-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:14px;
+    }
+    .category-card{
+      background:#19191b;
+      border:1px solid rgba(198,162,77,.12);
+      border-radius:22px;
+      padding:18px;
+      box-shadow:var(--shadow);
+      cursor:pointer;
+      transition:.2s ease;
+    }
+    .category-card:hover{transform:translateY(-2px)}
+    .category-card h5{margin:0;font-size:22px;color:#fff}
+        .category-card p{margin:8px 0 0;color:var(--gold-2);font-size:14px}
+    .category-card .add-inside-category{
+      margin-top:14px;
+      width:100%;
+      justify-content:center;
+      font-size:14px;
+      padding:12px 14px;
+    }
 
     .mobile-top{display:none}
 
@@ -212,6 +236,7 @@
       .sidebar{display:none}
       .mobile-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
       .product-grid{grid-template-columns:1fr}
+      .category-grid{grid-template-columns:1fr}
       .stats{grid-template-columns:1fr}
       .main{padding:16px}
       .topbar{padding:14px}
@@ -257,6 +282,7 @@
       </div>
       <button class="nav-btn active" data-view="dashboard">الرئيسية</button>
       <button class="nav-btn" data-view="products">المنتجات</button>
+      <button class="nav-btn" data-view="categories">الأقسام</button>
       <button class="nav-btn" data-view="add">إضافة / تعديل منتج</button>
       <button class="nav-btn" id="logoutBtn">تسجيل الخروج</button>
     </aside>
@@ -287,18 +313,18 @@
       <section id="view-dashboard" class="view">
         <div class="stats">
           <div class="stat"><div class="k">إجمالي المنتجات</div><div class="v" id="statProducts">0</div></div>
-          <div class="stat"><div class="k">أحدث الموديلات</div><div class="v" id="statLatest">0</div></div>
+          <div class="stat"><div class="k">الأقسام</div><div class="v" id="statCategories">0</div></div>
           <div class="stat"><div class="k">غير المتوفر</div><div class="v" id="statUnavailable">0</div></div>
         </div>
 
         <div class="panel">
           <div class="panel-head">
             <div>
-              <h4>آخر المنتجات</h4>
-              <div class="panel-sub">معاينة سريعة للمنتجات المحفوظة على Firestore</div>
+              <h4>إضافة منتجات</h4>
+              <div class="panel-sub">اختر القسم أولًا ثم ادخل عليه لإدارة المنتجات الموجودة داخله</div>
             </div>
           </div>
-          <div id="dashboardProducts" class="product-grid"></div>
+          <div id="dashboardProducts" class="category-grid"></div>
         </div>
       </section>
 
@@ -314,7 +340,20 @@
         </div>
       </section>
 
-      <section id="view-add" class="view hidden">
+      
+      <section id="view-categories" class="view hidden">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h4>إضافة منتجات</h4>
+              <div class="panel-sub">اختر قسمًا ثم أضف منتجًا له مباشرة أو ادخل إليه لتشاهد منتجاته وتعدّلها</div>
+            </div>
+          </div>
+          <div id="categoriesGrid" class="category-grid"></div>
+        </div>
+      </section>
+
+<section id="view-add" class="view hidden">
         <div class="panel">
           <div class="panel-head">
             <div>
@@ -377,6 +416,22 @@
     </main>
   </section>
 
+  <div id="successToast" class="toast-success">
+    <div class="icon">✓</div>
+    <div id="successToastText">تم الحفظ بنجاح</div>
+  </div>
+
+  <div id="confirmModal" class="confirm-modal">
+    <div class="confirm-card">
+      <h4 id="confirmTitle">تأكيد</h4>
+      <p id="confirmText">هل أنت متأكد؟</p>
+      <div class="confirm-actions">
+        <button id="confirmCancel" class="btn btn-secondary">إلغاء</button>
+        <button id="confirmOk" class="btn btn-primary">تأكيد</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBM7gyVx5fF_5s00Cd_jqFEZY6HGIyS7Tc",
@@ -394,6 +449,8 @@
 
     let editingId = null;
     let products = [];
+    let selectedCategoryFilter = null;
+    let lastViewBeforeEdit = 'dashboard';
     let unsubscribeProducts = null;
 
     const loading = document.getElementById('loading');
@@ -402,6 +459,45 @@
     const appShell = document.getElementById('appShell');
     const loginNotice = document.getElementById('loginNotice');
     const appNotice = document.getElementById('appNotice');
+
+
+    const successToast = document.getElementById('successToast');
+    const successToastText = document.getElementById('successToastText');
+    const confirmModal = document.getElementById('confirmModal');
+    const confirmTitle = document.getElementById('confirmTitle');
+    const confirmText = document.getElementById('confirmText');
+    const confirmCancel = document.getElementById('confirmCancel');
+    const confirmOk = document.getElementById('confirmOk');
+
+    function showSuccessToast(message){
+      successToastText.textContent = message;
+      successToast.classList.add('show');
+      clearTimeout(showSuccessToast._timer);
+      showSuccessToast._timer = setTimeout(() => {
+        successToast.classList.remove('show');
+      }, 1800);
+    }
+
+    function askConfirm({title='تأكيد', text='هل أنت متأكد؟', okText='تأكيد'} = {}){
+      return new Promise((resolve) => {
+        confirmTitle.textContent = title;
+        confirmText.textContent = text;
+        confirmOk.textContent = okText;
+        confirmModal.classList.add('show');
+
+        const cleanup = (value) => {
+          confirmModal.classList.remove('show');
+          confirmCancel.removeEventListener('click', onCancel);
+          confirmOk.removeEventListener('click', onOk);
+          resolve(value);
+        };
+        const onCancel = () => cleanup(false);
+        const onOk = () => cleanup(true);
+
+        confirmCancel.addEventListener('click', onCancel);
+        confirmOk.addEventListener('click', onOk);
+      });
+    }
 
     function setLoading(show, text='جاري التحميل...'){
       loadingText.textContent = text;
@@ -434,14 +530,15 @@
 
       const meta = {
         dashboard: ['الرئيسية','نظرة سريعة على المنتجات والحالة العامة'],
-        products: ['المنتجات','عرض كل المنتجات وتعديلها أو حذفها'],
+        products: [selectedCategoryFilter ? `منتجات قسم ${selectedCategoryFilter}` : 'المنتجات','عرض كل المنتجات وتعديلها أو حذفها'],
+        categories: ['إضافة منتجات','اختر قسمًا ثم ادخل عليه لتشاهد كل المنتجات داخله'],
         add: [editingId ? 'تعديل منتج' : 'إضافة منتج','إضافة موديل جديد أو تعديل موديل محفوظ']
       };
       document.getElementById('viewTitle').textContent = meta[name][0];
       document.getElementById('viewDesc').textContent = meta[name][1];
 
       const backBtn = document.getElementById('backAdminBtn');
-      if (name === 'add' || name === 'products'){
+      if (name === 'add' || name === 'products' || name === 'categories'){
         backBtn.classList.add('show');
       } else {
         backBtn.classList.remove('show');
@@ -465,7 +562,7 @@
       return `
         <div class="product-card">
           <div class="thumb">
-            ${p.available === false ? '<span class="badge">نفد</span>' : ''}
+            ${p.available === false ? '<span class="badge">غير متوفر</span>' : ''}
             <img src="${safeImage(p.image, p.name)}" alt="${p.name}" loading="lazy" onerror="this.src='https://placehold.co/700x700/f3ead7/8f6a10?text='+encodeURIComponent('${(p.name || 'منتج').replace(/'/g, "\\'")}')">
           </div>
           <div class="body">
@@ -479,7 +576,7 @@
           <div class="actions">
             <button class="btn btn-secondary" onclick="editProduct('${p.id}')">تعديل</button>
             <button class="btn ${p.available === false ? 'btn-ok' : 'btn-secondary'}" onclick="toggleAvailability('${p.id}', ${p.available === false ? 'true' : 'false'})">
-              ${p.available === false ? 'متوفر' : 'نفد'}
+              ${p.available === false ? 'متوفر' : 'غير متوفر'}
             </button>
             <button class="btn btn-danger" onclick="deleteProduct('${p.id}')">حذف</button>
           </div>
@@ -487,23 +584,71 @@
       `;
     }
 
+
+    window.openCategoryAddForm = function(categoryName){
+      selectedCategoryFilter = categoryName;
+      editingId = null;
+      lastViewBeforeEdit = 'categories';
+      document.getElementById('formTitle').textContent = `إضافة منتج إلى قسم ${categoryName}`;
+      document.getElementById('pName').value = '';
+      document.getElementById('pCategory').value = categoryName;
+      document.getElementById('pWeight').value = '';
+      document.getElementById('pImage').value = '';
+      document.getElementById('pDescription').value = '';
+      document.getElementById('pLatest').checked = true;
+      document.getElementById('pAvailable').checked = true;
+      setView('add');
+    }
+
     function render(){
       document.getElementById('statProducts').textContent = products.length;
-      document.getElementById('statLatest').textContent = products.filter(p => p.latest).length;
+      document.getElementById('statCategories').textContent = 6;
       document.getElementById('statUnavailable').textContent = products.filter(p => p.available === false).length;
 
       const dashboard = document.getElementById('dashboardProducts');
       const grid = document.getElementById('productsGrid');
+      const categoriesGrid = document.getElementById('categoriesGrid');
+
+      const categories = ['خواتم','محابس','أساور','أطقم','كفوف','حلاق'];
 
       if (!products.length){
         const empty = '<div class="empty">لا يوجد منتجات محفوظة حتى الآن</div>';
-        dashboard.innerHTML = empty;
+        dashboard.innerHTML = categories.map(cat => `
+          <div class="category-card">
+            <div onclick="openCategory('${cat}')" style="cursor:pointer">
+              <h5>${cat}</h5>
+              <p>0 منتج</p>
+            </div>
+            <button class="btn btn-primary add-inside-category" onclick="openCategoryAddForm('${cat}')">+ إضافة منتج</button>
+          </div>
+        `).join('');
         grid.innerHTML = empty;
+        categoriesGrid.innerHTML = dashboard.innerHTML;
         return;
       }
 
-      dashboard.innerHTML = products.slice(0, 3).map(productCard).join('');
-      grid.innerHTML = products.map(productCard).join('');
+      dashboard.innerHTML = categories.map(cat => {
+        const count = products.filter(p => p.category === cat).length;
+        return `
+          <div class="category-card">
+            <div onclick="openCategory('${cat}')" style="cursor:pointer">
+              <h5>${cat}</h5>
+              <p>${count} منتج</p>
+            </div>
+            <button class="btn btn-primary add-inside-category" onclick="openCategoryAddForm('${cat}')">+ إضافة منتج</button>
+          </div>
+        `;
+      }).join('');
+
+      const filteredProducts = selectedCategoryFilter
+        ? products.filter(p => p.category === selectedCategoryFilter)
+        : products;
+
+      grid.innerHTML = filteredProducts.length
+        ? filteredProducts.map(productCard).join('')
+        : '<div class="empty">لا يوجد منتجات داخل هذا القسم</div>';
+
+      categoriesGrid.innerHTML = dashboard.innerHTML;
     }
 
     function bindProducts(){
@@ -562,6 +707,11 @@
     }
 
     async function saveProduct(){
+      const wasEditing = !!editingId;
+      const targetAfterSave = wasEditing
+        ? (selectedCategoryFilter ? 'products' : (lastViewBeforeEdit || 'products'))
+        : (selectedCategoryFilter ? 'products' : 'categories');
+
       const payload = {
         name: document.getElementById('pName').value.trim(),
         category: document.getElementById('pCategory').value,
@@ -573,21 +723,23 @@
       };
 
       if (!payload.name){
-        showNotice(appNotice, 'اسم المنتج مطلوب', 'err');
+        showNotice(loginNotice, 'اسم المنتج مطلوب', 'err');
         setView('add');
         return;
       }
 
       try{
-        setLoading(true, editingId ? 'جاري حفظ التعديل...' : 'جاري إضافة المنتج...');
-        if (editingId){
+        setLoading(true, wasEditing ? 'جاري حفظ التعديل...' : 'جاري إضافة المنتج...');
+        if (wasEditing){
           await db.collection('products').doc(editingId).set(payload, { merge: true });
-          showNotice(appNotice, 'تم تعديل المنتج بنجاح', 'ok');
+          showSuccessToast('تم تعديل المنتج بنجاح');
         } else {
           await db.collection('products').add(payload);
-          showNotice(appNotice, 'تمت إضافة المنتج بنجاح', 'ok');
+          showSuccessToast('تمت إضافة المنتج بنجاح');
         }
+
         resetForm();
+        setView(targetAfterSave);
       } catch (error){
         showNotice(appNotice, 'فشل حفظ المنتج', 'err');
         console.log(error);
@@ -596,9 +748,17 @@
       }
     }
 
+    window.openCategory = function(categoryName){
+      lastViewBeforeEdit = 'categories';
+      selectedCategoryFilter = categoryName;
+      render();
+      setView('products');
+    }
+
     window.editProduct = function(id){
       const p = products.find(x => x.id === id);
       if (!p) return;
+      lastViewBeforeEdit = selectedCategoryFilter ? 'products' : 'products';
       editingId = id;
       document.getElementById('formTitle').textContent = 'تعديل المنتج';
       document.getElementById('pName').value = p.name || '';
@@ -612,11 +772,17 @@
     }
 
     window.deleteProduct = async function(id){
-      if (!confirm('هل تريد حذف المنتج؟')) return;
+      const ok = await askConfirm({
+        title: 'حذف المنتج',
+        text: 'هل تريد حذف هذا المنتج نهائيًا؟',
+        okText: 'حذف'
+      });
+      if (!ok) return;
+
       try{
         setLoading(true, 'جاري حذف المنتج...');
         await db.collection('products').doc(id).delete();
-        showNotice(appNotice, 'تم حذف المنتج', 'ok');
+        showSuccessToast('تم حذف المنتج');
       } catch (error){
         showNotice(appNotice, 'فشل حذف المنتج', 'err');
         console.log(error);
@@ -626,10 +792,17 @@
     }
 
     window.toggleAvailability = async function(id, nextState){
+      const ok = await askConfirm({
+        title: nextState ? 'جعل المنتج متوفرًا' : 'جعل المنتج غير متوفر',
+        text: nextState ? 'هل تريد إظهار المنتج كمتوفر؟' : 'هل تريد جعل المنتج غير متوفر حاليًا؟',
+        okText: 'تأكيد'
+      });
+      if (!ok) return;
+
       try{
         setLoading(true, 'جاري تحديث الحالة...');
         await db.collection('products').doc(id).set({ available: nextState }, { merge: true });
-        showNotice(appNotice, nextState ? 'تم جعل المنتج متوفرًا' : 'تم وضع المنتج كنفد', 'ok');
+        showSuccessToast(nextState ? 'تم جعل المنتج متوفرًا' : 'تم جعل المنتج غير متوفر');
       } catch (error){
         showNotice(appNotice, 'فشل تحديث الحالة', 'err');
         console.log(error);
@@ -647,20 +820,43 @@
       const addViewHidden = document.getElementById('view-add').classList.contains('hidden');
       const productsViewHidden = document.getElementById('view-products').classList.contains('hidden');
 
+      const categoriesViewHidden = document.getElementById('view-categories').classList.contains('hidden');
+
       if (!addViewHidden && editingId){
         editingId = null;
         resetForm();
-        setView('products');
+        if (editingId) {
+          setView(lastViewBeforeEdit || 'products');
+        } else if (selectedCategoryFilter) {
+          setView('products');
+        } else {
+          setView('categories');
+        }
+        setView(selectedCategoryFilter ? 'products' : 'products');
       } else if (!addViewHidden) {
-        setView('dashboard');
+        setView(selectedCategoryFilter ? 'products' : 'categories');
       } else if (!productsViewHidden) {
+        if (selectedCategoryFilter){
+          selectedCategoryFilter = null;
+          render();
+          setView('categories');
+        } else {
+          setView('dashboard');
+        }
+      } else if (!categoriesViewHidden) {
         setView('dashboard');
       } else {
         setView('dashboard');
       }
     });
     document.querySelectorAll('.nav-btn[data-view]').forEach(btn => {
-      btn.addEventListener('click', () => setView(btn.dataset.view));
+      btn.addEventListener('click', () => {
+        if (btn.dataset.view === 'products') {
+          selectedCategoryFilter = null;
+          render();
+        }
+        setView(btn.dataset.view);
+      });
     });
 
     auth.onAuthStateChanged((user) => {
