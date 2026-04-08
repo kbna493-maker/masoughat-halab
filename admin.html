@@ -189,7 +189,13 @@
     .product-card .body{padding:14px}
     .product-card .title{font-size:20px;font-weight:700;color:#fff}
     .product-card .meta{margin-top:6px;color:var(--gold-2);font-size:14px;line-height:1.9}
-    .product-card .actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 14px 14px}
+    .product-card .status-row{display:flex;align-items:center;justify-content:flex-start;gap:10px;margin-top:10px}
+    .status-pill{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:7px 12px;font-size:12px;font-weight:700}
+    .status-pill::before{content:'';width:9px;height:9px;border-radius:50%;background:currentColor;opacity:.95}
+    .status-pill.available{background:rgba(92,179,109,.14);border:1px solid rgba(92,179,109,.22);color:#baf2c1}
+    .status-pill.unavailable{background:rgba(200,91,77,.14);border:1px solid rgba(200,91,77,.24);color:#ffc8be}
+    .product-card .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 14px 14px}
+    .product-card .actions .btn-wide{grid-column:1/-1}
     .badge{
       position:absolute;top:10px;left:10px;background:#9b7318;color:#fff;border-radius:999px;padding:6px 11px;font-size:12px;font-weight:700
     }
@@ -214,9 +220,8 @@
     .category-card:hover{transform:translateY(-2px)}
     .category-card h5{margin:0;font-size:22px;color:#fff}
     .category-card p{margin:8px 0 0;color:var(--gold-2);font-size:14px}
-    .category-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-    .category-actions .btn{flex:1}
-    .panel-action-btn{white-space:nowrap}
+    .stat-button{cursor:pointer;transition:.2s ease}
+    .stat-button:hover{transform:translateY(-2px);border-color:rgba(198,162,77,.28)}
 
     .mobile-top{display:none}
 
@@ -399,7 +404,7 @@
         <div class="stats">
           <div class="stat"><div class="k">إجمالي المنتجات</div><div class="v" id="statProducts">0</div></div>
           <div class="stat"><div class="k">الأقسام</div><div class="v" id="statCategories">0</div></div>
-          <div class="stat"><div class="k">غير المتوفر</div><div class="v" id="statUnavailable">0</div></div>
+          <button class="stat stat-button" id="unavailableStatBtn" type="button"><div class="k">غير المتوفر</div><div class="v" id="statUnavailable">0</div></button>
         </div>
 
         <div class="panel">
@@ -434,7 +439,6 @@
               <h4>الأقسام</h4>
               <div class="panel-sub">ادخل على أي قسم لتشاهد كل المنتجات داخله وتعدّلها</div>
             </div>
-            <button class="btn btn-primary panel-action-btn" onclick="openAddProduct()">إضافة منتج جديد</button>
           </div>
           <div id="categoriesGrid" class="category-grid"></div>
         </div>
@@ -704,10 +708,6 @@
           <div class="category-card" onclick="openCategory('${cat}')">
             <h5>${cat}</h5>
             <p>0 منتج</p>
-            <div class="category-actions">
-              <button class="btn btn-secondary" onclick="event.stopPropagation(); openCategory('${cat}')">عرض المنتجات</button>
-              <button class="btn btn-primary" onclick="event.stopPropagation(); openAddProduct('${cat}', 'categories')">إضافة منتج</button>
-            </div>
           </div>
         `).join('');
         grid.innerHTML = empty;
@@ -721,21 +721,19 @@
           <div class="category-card" onclick="openCategory('${cat}')">
             <h5>${cat}</h5>
             <p>${count} منتج</p>
-            <div class="category-actions">
-              <button class="btn btn-secondary" onclick="event.stopPropagation(); openCategory('${cat}')">عرض المنتجات</button>
-              <button class="btn btn-primary" onclick="event.stopPropagation(); openAddProduct('${cat}', 'categories')">إضافة منتج</button>
-            </div>
           </div>
         `;
       }).join('');
 
-      const filteredProducts = selectedCategoryFilter
-        ? products.filter(p => p.category === selectedCategoryFilter)
-        : products;
+      const filteredProducts = selectedCategoryFilter === '__UNAVAILABLE__'
+        ? products.filter(p => p.available === false)
+        : (selectedCategoryFilter
+          ? products.filter(p => p.category === selectedCategoryFilter)
+          : products);
 
       grid.innerHTML = filteredProducts.length
         ? filteredProducts.map(productCard).join('')
-        : '<div class="empty">لا يوجد منتجات داخل هذا القسم</div>';
+        : `<div class="empty">${selectedCategoryFilter === '__UNAVAILABLE__' ? 'لا يوجد منتجات غير متوفرة حاليًا' : 'لا يوجد منتجات داخل هذا القسم'}</div>`;
 
       categoriesGrid.innerHTML = dashboard.innerHTML;
     }
@@ -843,6 +841,12 @@
       setView('products');
     }
 
+    window.openUnavailableProducts = function(){
+      selectedCategoryFilter = '__UNAVAILABLE__';
+      render();
+      setView('products');
+    }
+
     window.editProduct = function(id){
       const p = products.find(x => x.id === id);
       if (!p) return;
@@ -899,6 +903,7 @@
       }
     }
 
+    document.getElementById('unavailableStatBtn').addEventListener('click', openUnavailableProducts);
     document.getElementById('loginBtn').addEventListener('click', login);
     document.getElementById('saveBtn').addEventListener('click', saveProduct);
     document.getElementById('resetBtn').addEventListener('click', resetForm);
@@ -916,7 +921,11 @@
       }
 
       if (currentView === 'products') {
-        if (selectedCategoryFilter) {
+        if (selectedCategoryFilter === '__UNAVAILABLE__') {
+          selectedCategoryFilter = null;
+          render();
+          setView('dashboard');
+        } else if (selectedCategoryFilter) {
           selectedCategoryFilter = null;
           render();
           setView('categories');
