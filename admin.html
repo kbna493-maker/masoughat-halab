@@ -213,20 +213,15 @@
     }
     .category-card:hover{transform:translateY(-2px)}
     .category-card h5{margin:0;font-size:22px;color:#fff}
-        .category-card p{margin:8px 0 0;color:var(--gold-2);font-size:14px}
+    .category-card p{margin:8px 0 0;color:var(--gold-2);font-size:14px}
     .category-card{
       display:flex;
       flex-direction:column;
       justify-content:space-between;
-      min-height:260px;
-      padding:20px;
-      cursor:default;
+      min-height:250px;
     }
     .category-card-top{
       cursor:pointer;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
     }
     .category-card .add-btn{
       width:100%;
@@ -234,15 +229,8 @@
       margin-top:18px;
       border-radius:28px;
       padding:18px 16px;
-      font-size:18px;
+      font-size:17px;
       font-weight:700;
-    }
-    .category-card .add-inside-category{
-      margin-top:14px;
-      width:100%;
-      justify-content:center;
-      font-size:14px;
-      padding:12px 14px;
     }
 
     .mobile-top{display:none}
@@ -259,7 +247,6 @@
       .sidebar{display:none}
       .mobile-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
       .product-grid{grid-template-columns:1fr}
-      .category-grid{grid-template-columns:1fr}
       .stats{grid-template-columns:1fr}
       .main{padding:16px}
       .topbar{padding:14px}
@@ -368,8 +355,8 @@
         <div class="panel">
           <div class="panel-head">
             <div>
-              <h4>إضافة منتجات</h4>
-              <div class="panel-sub">اختر قسمًا ثم أضف منتجًا له مباشرة أو ادخل إليه لتشاهد منتجاته وتعدّلها</div>
+              <h4>الأقسام</h4>
+              <div class="panel-sub">ادخل على أي قسم لتشاهد كل المنتجات داخله وتعدّلها</div>
             </div>
           </div>
           <div id="categoriesGrid" class="category-grid"></div>
@@ -607,7 +594,6 @@
       `;
     }
 
-
     window.openCategoryAddForm = function(categoryName){
       selectedCategoryFilter = categoryName;
       editingId = null;
@@ -638,11 +624,11 @@
         const empty = '<div class="empty">لا يوجد منتجات محفوظة حتى الآن</div>';
         dashboard.innerHTML = categories.map(cat => `
           <div class="category-card">
-            <div onclick="openCategory('${cat}')" style="cursor:pointer">
+            <div class="category-card-top" onclick="openCategory('${cat}')">
               <h5>${cat}</h5>
               <p>0 منتج</p>
             </div>
-            <button class="btn btn-primary add-inside-category" onclick="openCategoryAddForm('${cat}')">+ إضافة منتج</button>
+            <button class="btn btn-primary add-btn" onclick="openCategoryAddForm('${cat}')">+ إضافة منتج</button>
           </div>
         `).join('');
         grid.innerHTML = empty;
@@ -654,11 +640,11 @@
         const count = products.filter(p => p.category === cat).length;
         return `
           <div class="category-card">
-            <div onclick="openCategory('${cat}')" style="cursor:pointer">
+            <div class="category-card-top" onclick="openCategory('${cat}')">
               <h5>${cat}</h5>
               <p>${count} منتج</p>
             </div>
-            <button class="btn btn-primary add-inside-category" onclick="openCategoryAddForm('${cat}')">+ إضافة منتج</button>
+            <button class="btn btn-primary add-btn" onclick="openCategoryAddForm('${cat}')">+ إضافة منتج</button>
           </div>
         `;
       }).join('');
@@ -731,10 +717,6 @@
 
     async function saveProduct(){
       const wasEditing = !!editingId;
-      const targetAfterSave = wasEditing
-        ? (selectedCategoryFilter ? 'products' : (lastViewBeforeEdit || 'products'))
-        : (selectedCategoryFilter ? 'products' : 'categories');
-
       const payload = {
         name: document.getElementById('pName').value.trim(),
         category: document.getElementById('pCategory').value,
@@ -746,7 +728,7 @@
       };
 
       if (!payload.name){
-        showNotice(loginNotice, 'اسم المنتج مطلوب', 'err');
+        showNotice(appNotice, 'اسم المنتج مطلوب', 'err');
         setView('add');
         return;
       }
@@ -761,8 +743,12 @@
           showSuccessToast('تمت إضافة المنتج بنجاح');
         }
 
+        const targetView = wasEditing
+          ? (selectedCategoryFilter ? 'products' : (lastViewBeforeEdit || 'products'))
+          : (selectedCategoryFilter ? 'products' : 'categories');
+
         resetForm();
-        setView(targetAfterSave);
+        setView(targetView);
       } catch (error){
         showNotice(appNotice, 'فشل حفظ المنتج', 'err');
         console.log(error);
