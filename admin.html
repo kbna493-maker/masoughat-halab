@@ -240,7 +240,7 @@
       position:fixed;
       left:50%;
       bottom:28px;
-      transform:translateX(-50%) translateY(14px);
+      transform:translate(-50%, 14px);
       background:rgba(14,24,16,.96);
       color:#e9ffe8;
       border:1px solid rgba(92,179,109,.28);
@@ -251,14 +251,17 @@
       gap:10px;
       z-index:2500;
       opacity:0;
+      visibility:hidden;
       pointer-events:none;
-      transition:.22s ease;
+      transition:opacity .22s ease, transform .22s ease, visibility .22s ease;
       box-shadow:var(--shadow);
       white-space:nowrap;
+      max-width:calc(100vw - 24px);
     }
     .toast-success.show{
       opacity:1;
-      transform:translateX(-50%) translateY(0);
+      visibility:visible;
+      transform:translate(-50%, 0);
     }
     .toast-success .icon{
       width:30px;
@@ -278,13 +281,21 @@
       inset:0;
       background:rgba(7,7,8,.72);
       backdrop-filter:blur(6px);
-      display:none;
+      display:flex;
       align-items:center;
       justify-content:center;
       z-index:2600;
       padding:20px;
+      opacity:0;
+      visibility:hidden;
+      pointer-events:none;
+      transition:opacity .22s ease, visibility .22s ease;
     }
-    .confirm-modal.show{display:flex}
+    .confirm-modal.show{
+      opacity:1;
+      visibility:visible;
+      pointer-events:auto;
+    }
     .confirm-card{
       width:min(100%,430px);
       background:linear-gradient(180deg,#171718,#121213);
@@ -301,6 +312,17 @@
       display:grid;
       grid-template-columns:1fr 1fr;
       gap:10px;
+    }
+    @media (max-width: 640px){
+      .toast-success{
+        white-space:normal;
+        width:calc(100vw - 24px);
+        border-radius:22px;
+        padding:12px 14px;
+      }
+      .confirm-card{
+        width:100%;
+      }
     }
 
   </style>
@@ -476,12 +498,12 @@
     </main>
   </section>
 
-  <div id="successToast" class="toast-success">
+  <div id="successToast" class="toast-success" aria-live="polite">
     <div class="icon">✓</div>
     <div id="successToastText">تم الحفظ بنجاح</div>
   </div>
 
-  <div id="confirmModal" class="confirm-modal">
+  <div id="confirmModal" class="confirm-modal" aria-hidden="true">
     <div class="confirm-card">
       <h4 id="confirmTitle">تأكيد</h4>
       <p id="confirmText">هل أنت متأكد؟</p>
@@ -550,9 +572,11 @@
         confirmText.textContent = text;
         confirmOk.textContent = okText;
         confirmModal.classList.add('show');
+        confirmModal.setAttribute('aria-hidden', 'false');
 
         const cleanup = (value) => {
           confirmModal.classList.remove('show');
+          confirmModal.setAttribute('aria-hidden', 'true');
           confirmCancel.removeEventListener('click', onCancel);
           confirmOk.removeEventListener('click', onOk);
           resolve(value);
