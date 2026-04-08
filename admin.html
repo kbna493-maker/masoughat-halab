@@ -214,24 +214,6 @@
     .category-card:hover{transform:translateY(-2px)}
     .category-card h5{margin:0;font-size:22px;color:#fff}
     .category-card p{margin:8px 0 0;color:var(--gold-2);font-size:14px}
-    .category-card{
-      display:flex;
-      flex-direction:column;
-      justify-content:space-between;
-      min-height:250px;
-    }
-    .category-card-top{
-      cursor:pointer;
-    }
-    .category-card .add-btn{
-      width:100%;
-      justify-content:center;
-      margin-top:18px;
-      border-radius:28px;
-      padding:18px 16px;
-      font-size:17px;
-      font-weight:700;
-    }
 
     .mobile-top{display:none}
 
@@ -253,6 +235,74 @@
       .topbar h3{font-size:21px}
       .row2{grid-template-columns:1fr}
     }
+  
+    .toast-success{
+      position:fixed;
+      left:50%;
+      bottom:28px;
+      transform:translateX(-50%) translateY(14px);
+      background:rgba(14,24,16,.96);
+      color:#e9ffe8;
+      border:1px solid rgba(92,179,109,.28);
+      border-radius:999px;
+      padding:10px 16px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      z-index:2500;
+      opacity:0;
+      pointer-events:none;
+      transition:.22s ease;
+      box-shadow:var(--shadow);
+      white-space:nowrap;
+    }
+    .toast-success.show{
+      opacity:1;
+      transform:translateX(-50%) translateY(0);
+    }
+    .toast-success .icon{
+      width:30px;
+      height:30px;
+      border-radius:999px;
+      background:rgba(92,179,109,.16);
+      border:1px solid rgba(92,179,109,.25);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:700;
+      color:#9bf0a8;
+      flex:0 0 auto;
+    }
+    .confirm-modal{
+      position:fixed;
+      inset:0;
+      background:rgba(7,7,8,.72);
+      backdrop-filter:blur(6px);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:2600;
+      padding:20px;
+    }
+    .confirm-modal.show{display:flex}
+    .confirm-card{
+      width:min(100%,430px);
+      background:linear-gradient(180deg,#171718,#121213);
+      border:1px solid rgba(198,162,77,.18);
+      border-radius:28px;
+      padding:22px 18px;
+      box-shadow:var(--shadow);
+      text-align:center;
+    }
+    .confirm-card h4{margin:0 0 10px;font-size:26px}
+    .confirm-card p{margin:0;color:var(--muted);line-height:1.9;font-size:15px}
+    .confirm-actions{
+      margin-top:18px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
   </style>
 </head>
 <body>
@@ -481,12 +531,18 @@
 
     function showSuccessToast(message){
       successToastText.textContent = message;
+      successToast.classList.remove('show');
+      void successToast.offsetWidth;
       successToast.classList.add('show');
       clearTimeout(showSuccessToast._timer);
       showSuccessToast._timer = setTimeout(() => {
         successToast.classList.remove('show');
       }, 1800);
     }
+
+    confirmModal.addEventListener('click', (e) => {
+      if (e.target === confirmModal) confirmCancel.click();
+    });
 
     function askConfirm({title='تأكيد', text='هل أنت متأكد؟', okText='تأكيد'} = {}){
       return new Promise((resolve) => {
@@ -540,7 +596,7 @@
 
       const meta = {
         dashboard: ['الرئيسية','نظرة سريعة على المنتجات والحالة العامة'],
-        products: [selectedCategoryFilter ? `منتجات قسم ${selectedCategoryFilter}` : 'المنتجات','عرض كل المنتجات وتعديلها أو حذفها'],
+        products: [selectedCategoryFilter ? `قسم ${selectedCategoryFilter}` : 'المنتجات','عرض كل المنتجات وتعديلها أو حذفها'],
         categories: ['إضافة منتجات','اختر قسمًا ثم ادخل عليه لتشاهد كل المنتجات داخله'],
         add: [editingId ? 'تعديل منتج' : 'إضافة منتج','إضافة موديل جديد أو تعديل موديل محفوظ']
       };
@@ -594,21 +650,6 @@
       `;
     }
 
-    window.openCategoryAddForm = function(categoryName){
-      selectedCategoryFilter = categoryName;
-      editingId = null;
-      lastViewBeforeEdit = 'categories';
-      document.getElementById('formTitle').textContent = `إضافة منتج إلى قسم ${categoryName}`;
-      document.getElementById('pName').value = '';
-      document.getElementById('pCategory').value = categoryName;
-      document.getElementById('pWeight').value = '';
-      document.getElementById('pImage').value = '';
-      document.getElementById('pDescription').value = '';
-      document.getElementById('pLatest').checked = true;
-      document.getElementById('pAvailable').checked = true;
-      setView('add');
-    }
-
     function render(){
       document.getElementById('statProducts').textContent = products.length;
       document.getElementById('statCategories').textContent = 6;
@@ -623,12 +664,9 @@
       if (!products.length){
         const empty = '<div class="empty">لا يوجد منتجات محفوظة حتى الآن</div>';
         dashboard.innerHTML = categories.map(cat => `
-          <div class="category-card">
-            <div class="category-card-top" onclick="openCategory('${cat}')">
-              <h5>${cat}</h5>
-              <p>0 منتج</p>
-            </div>
-            <button class="btn btn-primary add-btn" onclick="openCategoryAddForm('${cat}')">+ إضافة منتج</button>
+          <div class="category-card" onclick="openCategory('${cat}')">
+            <h5>${cat}</h5>
+            <p>0 منتج</p>
           </div>
         `).join('');
         grid.innerHTML = empty;
@@ -639,12 +677,9 @@
       dashboard.innerHTML = categories.map(cat => {
         const count = products.filter(p => p.category === cat).length;
         return `
-          <div class="category-card">
-            <div class="category-card-top" onclick="openCategory('${cat}')">
-              <h5>${cat}</h5>
-              <p>${count} منتج</p>
-            </div>
-            <button class="btn btn-primary add-btn" onclick="openCategoryAddForm('${cat}')">+ إضافة منتج</button>
+          <div class="category-card" onclick="openCategory('${cat}')">
+            <h5>${cat}</h5>
+            <p>${count} منتج</p>
           </div>
         `;
       }).join('');
