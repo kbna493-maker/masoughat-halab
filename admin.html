@@ -582,7 +582,12 @@
 
     const auth = firebase.auth();
     const db = firebase.firestore();
-    const storage = firebase.storage();
+    const storageBucketCandidates = [firebaseConfig.storageBucket, `${firebaseConfig.projectId}.appspot.com`].filter(Boolean);
+
+    function getStorageRef(path, bucketName){
+      const bucketUrl = bucketName.startsWith('gs://') ? bucketName : `gs://${bucketName}`;
+      return firebase.app().storage(bucketUrl).ref().child(path);
+    }
 
     let editingId = null;
     let products = [];
@@ -725,26 +730,86 @@
       renderImagePreviews();
     }
 
+    function uploadOneFileWithFallback(file, path, progressBase, progressSpan){
+      return new Promise((resolve, reject) => {
+        let bucketIndex = 0;
+        let settled = false;
+
+        const tryNextBucket = (lastError = null) => {
+          if (bucketIndex >= storageBucketCandidates.length){
+            reject(lastError || new Error('storage-upload-failed'));
+            return;
+          }
+
+          const bucketName = storageBucketCandidates[bucketIndex++];
+          let timeoutId = null;
+
+          try {
+            const ref = getStorageRef(path, bucketName);
+            const task = ref.put(file);
+
+            timeoutId = setTimeout(() => {
+              try { task.cancel(); } catch (_) {}
+              if (!settled) tryNextBucket(new Error('upload-timeout'));
+            }, 45000);
+
+            task.on('state_changed', (snapshot) => {
+              const fraction = snapshot.totalBytes ? (snapshot.bytesTransferred / snapshot.totalBytes) : 0;
+              const percent = Math.round(progressBase + (fraction * progressSpan));
+              updateUploadProgress(percent);
+            }, (error) => {
+              clearTimeout(timeoutId);
+              if (settled) return;
+              const retryableCodes = ['storage/unknown', 'storage/retry-limit-exceeded', 'storage/canceled'];
+              if (retryableCodes.includes(error?.code) || error?.message === 'upload-timeout') {
+                tryNextBucket(error);
+              } else {
+                reject(error);
+              }
+            }, async () => {
+              clearTimeout(timeoutId);
+              if (settled) return;
+              settled = true;
+              try {
+                const url = await task.snapshot.ref.getDownloadURL();
+                resolve(url);
+              } catch (error) {
+                reject(error);
+              }
+            });
+          } catch (error) {
+            clearTimeout(timeoutId);
+            if (!settled) tryNextBucket(error);
+          }
+        };
+
+        tryNextBucket();
+      });
+    }
+
     async function uploadSelectedImages(productName='product'){
       if (!selectedFiles.length) return [];
       uploadInProgress = true;
-      let completed = 0;
+      updateUploadProgress(2);
       const total = selectedFiles.length;
       const urls = [];
 
-      for (const file of selectedFiles){
-        const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-        const path = `products/${Date.now()}-${Math.random().toString(36).slice(2,8)}-${fileSafeName(productName)}.${ext}`;
-        const ref = storage.ref().child(path);
-        const snapshot = await ref.put(file);
-        const url = await snapshot.ref.getDownloadURL();
-        urls.push(url);
-        completed += 1;
-        updateUploadProgress(Math.round((completed / total) * 100));
-      }
+      try {
+        for (let index = 0; index < selectedFiles.length; index++){
+          const file = selectedFiles[index];
+          const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+          const path = `products/${Date.now()}-${Math.random().toString(36).slice(2,8)}-${fileSafeName(productName)}.${ext}`;
+          const progressBase = Math.round((index / total) * 100);
+          const progressSpan = 100 / total;
+          const url = await uploadOneFileWithFallback(file, path, progressBase, progressSpan);
+          urls.push(url);
+          updateUploadProgress(Math.round(((index + 1) / total) * 100));
+        }
 
-      uploadInProgress = false;
-      return urls;
+        return urls;
+      } finally {
+        uploadInProgress = false;
+      }
     }
 
     function setView(name){
@@ -975,7 +1040,15 @@
         clearForm(selectedCategoryFilter || 'خواتم');
         setView(targetView);
       } catch (error){
-        showNotice(appNotice, 'فشل حفظ المنتج', 'err');
+        let message = 'فشل حفظ المنتج';
+        if (error?.code === 'storage/unauthorized') {
+          message = 'رفع الصور مرفوض من Firebase Storage. لازم نعدل قواعد التخزين.';
+        } else if (error?.code === 'storage/canceled') {
+          message = 'تم إلغاء رفع الصور قبل الاكتمال.';
+        } else if (error?.message === 'upload-timeout') {
+          message = 'رفع الصور استغرق وقتًا طويلًا. جرّب صورًا أصغر أو تحقق من إعدادات Storage.';
+        }
+        showNotice(appNotice, message, 'err');
         console.log(error);
       } finally {
         setLoading(false);
