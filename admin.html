@@ -8,6 +8,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -350,7 +351,25 @@
       }
     }
 
-  </style>
+  
+    .upload-box{
+      margin-top:6px;background:#171718;border:1px dashed rgba(198,162,77,.28);border-radius:22px;padding:14px
+    }
+    .upload-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+    .upload-note{color:var(--muted);font-size:13px;line-height:1.8}
+    .file-input{display:none}
+    .upload-trigger{min-width:150px}
+    .preview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
+    .preview-card{background:#1d1d1f;border:1px solid rgba(198,162,77,.14);border-radius:18px;overflow:hidden;position:relative}
+    .preview-card img{width:100%;height:110px;object-fit:cover;display:block;background:#242427}
+    .preview-card .preview-meta{padding:8px 10px;font-size:12px;color:var(--gold-2);text-align:center}
+    .preview-card .remove-preview{position:absolute;top:8px;left:8px;width:28px;height:28px;border:none;border-radius:999px;background:rgba(15,15,16,.82);color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+    .upload-progress{margin-top:10px;height:10px;border-radius:999px;background:#242427;overflow:hidden;display:none}
+    .upload-progress.show{display:block}
+    .upload-progress-bar{height:100%;width:0;background:linear-gradient(90deg,#d4b15d,#b68d31);transition:width .2s ease}
+    @media (max-width: 940px){.preview-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+
+</style>
 </head>
 <body>
   <div id="loading" class="loading">
@@ -493,8 +512,18 @@
               <input id="pWeight" class="input" placeholder="مثال: 2.35g">
             </div>
             <div class="field">
-              <label for="pImage">رابط الصورة</label>
-              <input id="pImage" class="input" placeholder="https://...">
+              <label>صور المنتج</label>
+              <div class="upload-box">
+                <div class="upload-top">
+                  <div class="upload-note">ارفع صورة أو أكثر مباشرة من جهازك. أول صورة ستكون الرئيسية للعرض.</div>
+                  <button type="button" id="pickImagesBtn" class="btn btn-secondary upload-trigger">اختيار الصور</button>
+                </div>
+                <input id="pImages" class="file-input" type="file" accept="image/*" multiple>
+                <div id="uploadProgress" class="upload-progress">
+                  <div id="uploadProgressBar" class="upload-progress-bar"></div>
+                </div>
+                <div id="imagesPreview" class="preview-grid"></div>
+              </div>
             </div>
           </div>
 
@@ -553,6 +582,7 @@
 
     const auth = firebase.auth();
     const db = firebase.firestore();
+    const storage = firebase.storage();
 
     let editingId = null;
     let products = [];
@@ -560,6 +590,9 @@
     let currentView = 'dashboard';
     let addOriginView = 'categories';
     let unsubscribeProducts = null;
+    let uploadedImages = [];
+    let selectedFiles = [];
+    let uploadInProgress = false;
 
     const loading = document.getElementById('loading');
     const loadingText = document.getElementById('loadingText');
@@ -636,6 +669,84 @@
       return url;
     }
 
+    function fileSafeName(name='image'){
+      return String(name).replace(/[^a-zA-Z0-9._-]+/g, '-');
+    }
+
+    function updateUploadProgress(percent=0){
+      const progress = document.getElementById('uploadProgress');
+      const bar = document.getElementById('uploadProgressBar');
+      progress.classList.toggle('show', percent > 0 && percent < 100);
+      bar.style.width = `${percent}%`;
+      if (percent >= 100) {
+        setTimeout(() => {
+          progress.classList.remove('show');
+          bar.style.width = '0%';
+        }, 500);
+      }
+    }
+
+    function renderImagePreviews(){
+      const box = document.getElementById('imagesPreview');
+      if (!uploadedImages.length && !selectedFiles.length){
+        box.innerHTML = '<div class="empty" style="grid-column:1/-1;padding:18px 10px">لا توجد صور مضافة بعد</div>';
+        return;
+      }
+
+      const selectedCards = selectedFiles.map((file, index) => {
+        const tempUrl = URL.createObjectURL(file);
+        return `
+          <div class="preview-card">
+            <button type="button" class="remove-preview" onclick="removeSelectedFile(${index})">×</button>
+            <img src="${tempUrl}" alt="${file.name}">
+            <div class="preview-meta">صورة جديدة ${index === 0 && !uploadedImages.length ? '(الرئيسية)' : ''}</div>
+          </div>
+        `;
+      }).join('');
+
+      const uploadedCards = uploadedImages.map((url, index) => `
+        <div class="preview-card">
+          <button type="button" class="remove-preview" onclick="removeUploadedImage(${index})">×</button>
+          <img src="${safeImage(url, 'منتج')}" alt="صورة المنتج">
+          <div class="preview-meta">${index === 0 ? 'الصورة الرئيسية' : 'صورة إضافية'}</div>
+        </div>
+      `).join('');
+
+      box.innerHTML = uploadedCards + selectedCards;
+    }
+
+    window.removeUploadedImage = function(index){
+      uploadedImages.splice(index, 1);
+      renderImagePreviews();
+    }
+
+    window.removeSelectedFile = function(index){
+      selectedFiles.splice(index, 1);
+      renderImagePreviews();
+    }
+
+    async function uploadSelectedImages(productName='product'){
+      if (!selectedFiles.length) return [];
+      uploadInProgress = true;
+      let completed = 0;
+      const total = selectedFiles.length;
+      const urls = [];
+
+      for (const file of selectedFiles){
+        const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+        const path = `products/${Date.now()}-${Math.random().toString(36).slice(2,8)}-${fileSafeName(productName)}.${ext}`;
+        const ref = storage.ref().child(path);
+        const snapshot = await ref.put(file);
+        const url = await snapshot.ref.getDownloadURL();
+        urls.push(url);
+        completed += 1;
+        updateUploadProgress(Math.round((completed / total) * 100));
+      }
+
+      uploadInProgress = false;
+      return urls;
+    }
+
     function setView(name){
       currentView = name;
       document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
@@ -664,7 +775,11 @@
       document.getElementById('pName').value = '';
       document.getElementById('pCategory').value = categoryName;
       document.getElementById('pWeight').value = '';
-      document.getElementById('pImage').value = '';
+      uploadedImages = [];
+      selectedFiles = [];
+      const imageInput = document.getElementById('pImages');
+      if (imageInput) imageInput.value = '';
+      renderImagePreviews();
       document.getElementById('pDescription').value = '';
       document.getElementById('pLatest').checked = true;
       document.getElementById('pAvailable').checked = true;
@@ -686,7 +801,7 @@
         <div class="product-card">
           <div class="thumb">
             ${p.available === false ? '<span class="badge">غير متوفر</span>' : ''}
-            <img src="${safeImage(p.image, p.name)}" alt="${p.name}" loading="lazy" onerror="this.src='https://placehold.co/700x700/f3ead7/8f6a10?text='+encodeURIComponent('${(p.name || 'منتج').replace(/'/g, "\\'")}')">
+            <img src="${safeImage((Array.isArray(p.images) && p.images[0]) || p.image, p.name)}" alt="${p.name}" loading="lazy" onerror="this.src='https://placehold.co/700x700/f3ead7/8f6a10?text='+encodeURIComponent('${(p.name || 'منتج').replace(/'/g, "\\'")}')">
           </div>
           <div class="body">
             <div class="title">${p.name || 'بدون اسم'}</div>
@@ -763,7 +878,7 @@
     function bindProducts(){
       if (unsubscribeProducts) unsubscribeProducts();
       unsubscribeProducts = db.collection('products').onSnapshot((snap) => {
-        products = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        products = snap.docs.map(doc => { const data = doc.data() || {}; return { id: doc.id, ...data, images: Array.isArray(data.images) ? data.images : (data.image ? [data.image] : []) }; });
         render();
       }, (error) => {
         showNotice(appNotice, 'فشل تحميل المنتجات من قاعدة البيانات', 'err');
@@ -821,7 +936,6 @@
         name: document.getElementById('pName').value.trim(),
         category: document.getElementById('pCategory').value,
         weight: document.getElementById('pWeight').value.trim(),
-        image: document.getElementById('pImage').value.trim(),
         description: document.getElementById('pDescription').value.trim(),
         latest: document.getElementById('pLatest').checked,
         available: document.getElementById('pAvailable').checked
@@ -833,8 +947,19 @@
         return;
       }
 
+      if (!uploadedImages.length && !selectedFiles.length){
+        showNotice(appNotice, 'أضف صورة واحدة على الأقل للمنتج', 'err');
+        setView('add');
+        return;
+      }
+
       try{
         setLoading(true, wasEditing ? 'جاري حفظ التعديل...' : 'جاري إضافة المنتج...');
+        const freshUploaded = await uploadSelectedImages(payload.name || 'product');
+        const finalImages = [...uploadedImages, ...freshUploaded];
+        payload.images = finalImages;
+        payload.image = finalImages[0] || '';
+
         if (wasEditing){
           await db.collection('products').doc(editingId).set(payload, { merge: true });
           showSuccessToast('تم تعديل المنتج بنجاح');
@@ -878,7 +1003,11 @@
       document.getElementById('pName').value = p.name || '';
       document.getElementById('pCategory').value = p.category || 'خواتم';
       document.getElementById('pWeight').value = p.weight || '';
-      document.getElementById('pImage').value = p.image || '';
+      uploadedImages = Array.isArray(p.images) && p.images.length ? [...p.images] : (p.image ? [p.image] : []);
+      selectedFiles = [];
+      const imageInput = document.getElementById('pImages');
+      if (imageInput) imageInput.value = '';
+      renderImagePreviews();
       document.getElementById('pDescription').value = p.description || '';
       document.getElementById('pLatest').checked = !!p.latest;
       document.getElementById('pAvailable').checked = p.available !== false;
@@ -926,6 +1055,18 @@
     }
 
     document.getElementById('unavailableStatBtn').addEventListener('click', openUnavailableProducts);
+    document.getElementById('pickImagesBtn').addEventListener('click', () => {
+      document.getElementById('pImages').click();
+    });
+
+    document.getElementById('pImages').addEventListener('change', (e) => {
+      const incomingFiles = Array.from(e.target.files || []).filter(file => file.type.startsWith('image/'));
+      if (!incomingFiles.length) return;
+      selectedFiles = [...selectedFiles, ...incomingFiles];
+      e.target.value = '';
+      renderImagePreviews();
+    });
+
     document.getElementById('loginBtn').addEventListener('click', login);
     document.getElementById('saveBtn').addEventListener('click', saveProduct);
     document.getElementById('resetBtn').addEventListener('click', resetForm);
@@ -977,6 +1118,8 @@
         setView(btn.dataset.view);
       });
     });
+
+    renderImagePreviews();
 
     auth.onAuthStateChanged((user) => {
       if (user){
