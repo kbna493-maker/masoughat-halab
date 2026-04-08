@@ -216,10 +216,27 @@
       box-shadow:var(--shadow);
       cursor:pointer;
       transition:.2s ease;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
     }
     .category-card:hover{transform:translateY(-2px)}
     .category-card h5{margin:0;font-size:22px;color:#fff}
     .category-card p{margin:8px 0 0;color:var(--gold-2);font-size:14px}
+    .category-card .category-add-btn{
+      width:100%;
+      border:none;
+      border-radius:16px;
+      padding:12px 14px;
+      font-family:inherit;
+      font-size:14px;
+      font-weight:700;
+      cursor:pointer;
+      background:linear-gradient(180deg,#d4b15d,#b68d31);
+      color:#111;
+      box-shadow:0 8px 18px rgba(198,162,77,.18);
+    }
+    .category-card .category-add-btn:hover{transform:translateY(-1px)}
     .stat-button{cursor:pointer;transition:.2s ease}
     .stat-button:hover{transform:translateY(-2px);border-color:rgba(198,162,77,.28)}
 
@@ -413,7 +430,6 @@
               <h4>إضافة منتجات</h4>
               <div class="panel-sub">اختر القسم أولًا ثم ادخل عليه لإدارة المنتجات الموجودة داخله</div>
             </div>
-            <button class="btn btn-primary panel-action-btn" onclick="openAddProduct()">إضافة منتج جديد</button>
           </div>
           <div id="dashboardProducts" class="category-grid"></div>
         </div>
@@ -706,8 +722,11 @@
         const empty = '<div class="empty">لا يوجد منتجات محفوظة حتى الآن</div>';
         dashboard.innerHTML = categories.map(cat => `
           <div class="category-card" onclick="openCategory('${cat}')">
-            <h5>${cat}</h5>
-            <p>0 منتج</p>
+            <div>
+              <h5>${cat}</h5>
+              <p>0 منتج</p>
+            </div>
+            <button class="category-add-btn" onclick="event.stopPropagation(); openAddProduct('${cat}', 'dashboard')">إضافة منتج</button>
           </div>
         `).join('');
         grid.innerHTML = empty;
@@ -719,8 +738,11 @@
         const count = products.filter(p => p.category === cat).length;
         return `
           <div class="category-card" onclick="openCategory('${cat}')">
-            <h5>${cat}</h5>
-            <p>${count} منتج</p>
+            <div>
+              <h5>${cat}</h5>
+              <p>${count} منتج</p>
+            </div>
+            <button class="category-add-btn" onclick="event.stopPropagation(); openAddProduct('${cat}', 'dashboard')">إضافة منتج</button>
           </div>
         `;
       }).join('');
